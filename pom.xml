@@ -3,18 +3,16 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
-        <groupId>org.springframework.boot</groupId>
-        <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.2.3</version>
+        <groupId>cn.jzyunqi</groupId>
+        <artifactId>yqfw-common-third-parent</artifactId>
+        <version>0.0.5-SNAPSHOT</version>
     </parent>
-
-    <groupId>cn.jzyunqi</groupId>
-    <artifactId>yqfw-common-third-sina</artifactId>
-    <version>0.0.4-SNAPSHOT</version>
     <modelVersion>4.0.0</modelVersion>
 
+    <artifactId>yqfw-common-third-sina</artifactId>
+
     <properties>
-        <yqfw.version>0.0.4-SNAPSHOT</yqfw.version>
+        <yqfw.version>0.0.5-SNAPSHOT</yqfw.version>
         <commons-io.version>2.15.1</commons-io.version>
     </properties>
 

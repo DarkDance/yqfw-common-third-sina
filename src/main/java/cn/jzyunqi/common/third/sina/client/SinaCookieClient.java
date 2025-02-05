@@ -118,7 +118,7 @@ public class SinaCookieClient {
                     .addParameter("encoding", StringUtilPlus.UTF_8_S)
                     .addParameter("cdult", "3")
                     .addParameter("domain", "sina.com.cn")
-                    .addParameter("prelt", String.valueOf(RandomUtilPlus.Number.nextInt(100, 1000)))
+                    .addParameter("prelt", String.valueOf(RandomUtilPlus.Number.randomInt(100, 1000)))
                     .addParameter("returntype", "TEXT")
                     .build();
 
