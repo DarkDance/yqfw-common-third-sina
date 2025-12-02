@@ -94,7 +94,7 @@ public class SinaCookieClient {
 
             String waitEncrypt = preLoginRsp.getServertime() + "\t" + preLoginRsp.getNonce() + "\n" + password;
 
-            String encryptPassword = DigestUtilPlus.RSA256.encryptPublicKey(
+            String encryptPassword = DigestUtilPlus.RSA.encryptECBPKCS1Padding(
                     waitEncrypt.getBytes(),
                     new BigInteger(preLoginRsp.getPubkey(), 16),
                     new BigInteger("10001", 16),
