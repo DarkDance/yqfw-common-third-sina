@@ -12,8 +12,8 @@ import cn.jzyunqi.common.third.sina.response.UploadRsp;
 import cn.jzyunqi.common.utils.CollectionUtilPlus;
 import cn.jzyunqi.common.utils.DigestUtilPlus;
 import cn.jzyunqi.common.utils.RandomUtilPlus;
+import cn.jzyunqi.common.utils.RegExUtilPlus;
 import cn.jzyunqi.common.utils.StringUtilPlus;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.hc.core5.net.URIBuilder;
 import org.springframework.core.io.Resource;
@@ -25,6 +25,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+import tools.jackson.databind.ObjectMapper;
 
 import java.math.BigInteger;
 import java.net.URI;
@@ -42,7 +43,7 @@ import java.util.zip.CRC32;
 
 /**
  * @author wiiyaya
- * @date 2018/9/1.
+ * @since 2018/9/1.
  */
 @Slf4j
 public class SinaCookieClient {
@@ -57,18 +58,18 @@ public class SinaCookieClient {
 
     private static final String WEIBO_COOKIE_KEY = "WEIBO_COOKIE";
 
-    private String encryptUsername;
+    private final String encryptUsername;
 
-    private String password;
+    private final String password;
 
-    private RestTemplate restTemplate;
+    private final RestTemplate restTemplate;
 
-    private RedisHelper redisHelper;
+    private final RedisHelper redisHelper;
 
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper;
 
     public SinaCookieClient(String username, String password, RestTemplate restTemplate, RedisHelper redisHelper, ObjectMapper objectMapper) throws Exception {
-        this.encryptUsername = DigestUtilPlus.Base64.encodeBase64String(URLEncoder.encode(username, StringUtilPlus.UTF_8_S).getBytes(StringUtilPlus.UTF_8_S));
+        this.encryptUsername = DigestUtilPlus.Base64.encodeBase64String(URLEncoder.encode(username, StringUtilPlus.UTF_8).getBytes(StringUtilPlus.UTF_8));
         this.password = password;
         this.restTemplate = restTemplate;
         this.redisHelper = redisHelper;
@@ -109,7 +110,7 @@ public class SinaCookieClient {
                     .addParameter("vsnf", "1")
                     .addParameter("su", encryptUsername)
                     .addParameter("service", "sso")
-                    .addParameter("servertime", preLoginRsp.getServertime() + "")
+                    .addParameter("servertime", preLoginRsp.getServertime())
                     .addParameter("nonce", preLoginRsp.getNonce())
                     .addParameter("pwencode", "rsa2")
                     .addParameter("rsakv", preLoginRsp.getRsakv())
@@ -122,13 +123,13 @@ public class SinaCookieClient {
                     .addParameter("returntype", "TEXT")
                     .build();
 
-            RequestEntity requestEntity = new RequestEntity(headers, HttpMethod.POST, loginUri);
+            RequestEntity<Void> requestEntity = new RequestEntity<>(headers, HttpMethod.POST, loginUri);
             ResponseEntity<LoginRsp> responseEntity = restTemplate.exchange(requestEntity, LoginRsp.class);
 
             loginRsp = Optional.ofNullable(responseEntity.getBody()).orElse(new LoginRsp());
             List<String> cookieList = responseEntity.getHeaders().get("Set-Cookie");
             if (CollectionUtilPlus.Collection.isNotEmpty(cookieList)) {
-                loginRsp.setCookies(cookieList.stream().collect(Collectors.joining("; ")));
+                loginRsp.setCookies(StringUtilPlus.join("; ", cookieList));
             }
         } catch (Exception e) {
             log.error("======SinaCookieHelper loginSSO login error:", e);
@@ -138,7 +139,7 @@ public class SinaCookieClient {
         if ("0".equals(loginRsp.getRetcode())) {
             return loginRsp;
         } else {
-            log.error("======SinaCookieHelper loginSSO 200 error[]", loginRsp.getRetcode());
+            log.error("======SinaCookieHelper loginSSO 200 error[{}]", loginRsp.getRetcode());
             throw new BusinessException("common_error_sina_login_sso_failed");
         }
     }
@@ -153,7 +154,7 @@ public class SinaCookieClient {
         }
 
         LoginRsp loginRsp = loginSSO();
-        for (String url : loginSSO().getCrossDomainUrlList()) {
+        for (String url : loginRsp.getCrossDomainUrlList()) {
             if (url.contains("weibo.com")) {
                 try {
                     HttpHeaders headers = new HttpHeaders();
@@ -166,7 +167,7 @@ public class SinaCookieClient {
                     headers.set("User-Agent", "Mozilla/5.0 (Windows NT 6.1; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36");
 
                     URI loginWeiboUri = new URIBuilder(url + "&callback=sinaSSOController.doCrossDomainCallBack&scriptId=ssoscript0&client=ssologin.js(v1.4.19)&_=" + System.currentTimeMillis()).build();
-                    RequestEntity requestEntity = new RequestEntity(headers, HttpMethod.GET, loginWeiboUri);
+                    RequestEntity<Void> requestEntity = new RequestEntity<>(headers, HttpMethod.GET, loginWeiboUri);
                     ResponseEntity<String> responseEntity = restTemplate.exchange(requestEntity, String.class);
 
                     List<String> cookieList = responseEntity.getHeaders().get("Set-Cookie");
@@ -178,7 +179,7 @@ public class SinaCookieClient {
 
                         return cookieList;
                     } else {
-                        log.error("======SinaCookieHelper loginWeibo login 200 error:[]", responseEntity.getBody());
+                        log.error("======SinaCookieHelper loginWeibo login 200 error:[{}]", responseEntity.getBody());
                     }
                 } catch (Exception e) {
                     log.error("======SinaCookieHelper loginWeibo login error:", e);
@@ -200,7 +201,7 @@ public class SinaCookieClient {
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-            headers.set("Cookie", loginWeibo(cache).stream().collect(Collectors.joining("; ")));
+            headers.set("Cookie", StringUtilPlus.join("; ", loginWeibo(cache)));
 
             MultiValueMap<String, Object> params = new LinkedMultiValueMap<>();
             int i = 1;
@@ -218,13 +219,13 @@ public class SinaCookieClient {
         }
 
         try {
-            UploadRsp uploadRsp = objectMapper.readValue(StringUtilPlus.replaceAll(uploadBody, "([\\s\\S]*)<\\/script>", ""), UploadRsp.class);
+            UploadRsp uploadRsp = objectMapper.readValue(RegExUtilPlus.replaceAll(uploadBody, "([\\s\\S]*)<\\/script>", ""), UploadRsp.class);
             if ("A000006".equals(uploadRsp.getCode())) {
                 List<PictureDto> pictureDtoList = new ArrayList<>(uploadRsp.getData().getPics().values());
                 pictureDtoList.forEach(this::preparePictureImages);
                 return pictureDtoList;
             } else {
-                log.error("======SinaCookieHelper upload 200 error[][]:", uploadRsp.getCode(), uploadRsp);
+                log.error("======SinaCookieHelper upload 200 error[{}][{}]:", uploadRsp.getCode(), uploadRsp);
                 throw new BusinessException("common_error_sina_upload_failed");
             }
         } catch (Exception e) {
@@ -288,7 +289,7 @@ public class SinaCookieClient {
                     .addParameter("client", "ssologin.js(v1.4.18)")
                     .addParameter("_", String.valueOf(System.currentTimeMillis()))
                     .build();
-            RequestEntity requestEntity = new RequestEntity(HttpMethod.GET, preLoginUri);
+            RequestEntity<Void> requestEntity = new RequestEntity<>(HttpMethod.GET, preLoginUri);
             ResponseEntity<String> responseEntity = restTemplate.exchange(requestEntity, String.class);
             preLoginBody = Optional.ofNullable(responseEntity.getBody()).orElse(StringUtilPlus.EMPTY);
         } catch (Exception e) {
