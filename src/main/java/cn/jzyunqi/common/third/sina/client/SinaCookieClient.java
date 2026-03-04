@@ -1,8 +1,8 @@
 package cn.jzyunqi.common.third.sina.client;
 
 import cn.jzyunqi.common.exception.BusinessException;
-import cn.jzyunqi.common.feature.redis.Cache;
-import cn.jzyunqi.common.feature.redis.RedisHelper;
+import cn.jzyunqi.common.support.spring.redis.Cache;
+import cn.jzyunqi.common.support.spring.redis.RedisHelper;
 import cn.jzyunqi.common.third.sina.enums.ImageSize;
 import cn.jzyunqi.common.third.sina.model.CookieRedisDto;
 import cn.jzyunqi.common.third.sina.model.PictureDto;
