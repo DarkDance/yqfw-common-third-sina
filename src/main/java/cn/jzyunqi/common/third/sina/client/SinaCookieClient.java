@@ -1,8 +1,8 @@
 package cn.jzyunqi.common.third.sina.client;
 
 import cn.jzyunqi.common.exception.BusinessException;
-import cn.jzyunqi.common.support.spring.redis.Cache;
 import cn.jzyunqi.common.support.spring.redis.RedisHelper;
+import cn.jzyunqi.common.third.sina.constant.SinaCache;
 import cn.jzyunqi.common.third.sina.enums.ImageSize;
 import cn.jzyunqi.common.third.sina.model.CookieRedisDto;
 import cn.jzyunqi.common.third.sina.model.PictureDto;
@@ -147,8 +147,8 @@ public class SinaCookieClient {
     /**
      * 登录新浪微博weibo.com
      */
-    public List<String> loginWeibo(Cache cache) throws BusinessException {
-        CookieRedisDto cookieRedisDto = (CookieRedisDto) redisHelper.vGet(cache, WEIBO_COOKIE_KEY);
+    public List<String> loginWeibo() throws BusinessException {
+        CookieRedisDto cookieRedisDto = redisHelper.vGet(SinaCache.THIRD_SINA_COOKIE_V, WEIBO_COOKIE_KEY);
         if (cookieRedisDto != null && LocalDateTime.now().isBefore(cookieRedisDto.getExpireTime())) {
             return cookieRedisDto.getCookieList();
         }
@@ -175,7 +175,7 @@ public class SinaCookieClient {
                         cookieRedisDto = new CookieRedisDto();
                         cookieRedisDto.setCookieList(new ArrayList<>(cookieList)); //获取到的凭证
                         cookieRedisDto.setExpireTime(LocalDateTime.now().plusDays(1)); //凭证有效时间，单位：1天
-                        redisHelper.vPut(cache, WEIBO_COOKIE_KEY, cookieRedisDto);
+                        redisHelper.vPut(SinaCache.THIRD_SINA_COOKIE_V, WEIBO_COOKIE_KEY, cookieRedisDto);
 
                         return cookieList;
                     } else {
@@ -194,14 +194,14 @@ public class SinaCookieClient {
     /**
      * 上传文件至微博
      */
-    public List<PictureDto> uploadToWeibo(Cache cache, List<Resource> resourceList) throws BusinessException {
+    public List<PictureDto> uploadToWeibo(List<Resource> resourceList) throws BusinessException {
         String uploadBody;
         try {
             URI materialAddUri = new URIBuilder("http://picupload.service.weibo.com/interface/pic_upload.php").build();
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.MULTIPART_FORM_DATA);
-            headers.set("Cookie", StringUtilPlus.join("; ", loginWeibo(cache)));
+            headers.set("Cookie", StringUtilPlus.join("; ", loginWeibo()));
 
             MultiValueMap<String, Object> params = new LinkedMultiValueMap<>();
             int i = 1;
